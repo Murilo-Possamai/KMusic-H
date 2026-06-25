@@ -1,7 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:kmusich/auth_service.dart';
+import 'package:kmusich/views/main_page.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final emailController = TextEditingController();
+  final senhaController = TextEditingController();
+
+  Future<void> entrar() async {
+    try {
+      await authService.value.signIn(
+        email: emailController.text,
+        password: senhaController.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login bem-sucedido!')),
+        );
+        Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (context) => const MainPage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    senhaController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +65,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               TextField(
+                controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
@@ -44,6 +83,7 @@ class LoginPage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: senhaController,
                 keyboardType: TextInputType.visiblePassword,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
@@ -64,7 +104,7 @@ class LoginPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: entrar,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.white,
