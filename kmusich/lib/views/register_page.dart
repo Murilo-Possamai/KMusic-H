@@ -1,43 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:kmusich/auth_service.dart';
-import 'package:kmusich/views/main_page.dart';
-import 'package:kmusich/views/register_page.dart';
+import 'package:kmusich/views/login_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
+  final senhaController2 = TextEditingController();
 
-  Future<void> entrar() async {
+
+
+  void pushLoginPage(){
+            Navigator.pushReplacement(context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+  }
+  Future<void> criarConta() async {
+    if (senhaController.text == senhaController2.text){
     try {
-      await authService.value.signIn(
+      await authService.value.createAccount(
         email: emailController.text,
         password: senhaController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login bem-sucedido!')),
+          const SnackBar(content: Text('Conta criada com sucesso!')),
         );
-        Navigator.pushReplacement(context,
-        MaterialPageRoute(builder: (context) => const MainPage()),
-        );
+        pushLoginPage();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro: $e')),
       );
     }
+  }else{
+    ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('As senhas não coincidem')));
   }
-
-  void criarContaPush(){
-          Navigator.pushReplacement(context,
-        MaterialPageRoute(builder: (context) => const RegisterPage()));
   }
 
   @override
@@ -61,7 +66,7 @@ class _LoginPageState extends State<LoginPage> {
               const Icon(Icons.music_note, size: 90, color: Colors.cyanAccent),
               const SizedBox(height: 16),
               const Text(
-                "Olá, bem-vindo de volta!",
+                "Seja Bem-Vindo!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 23,
@@ -106,30 +111,30 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: senhaController2,
+                keyboardType: TextInputType.visiblePassword,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: "Repita sua senha",
+                  labelStyle: const TextStyle(color: Colors.white70),
+                  hintText: "Digite sua senha...",
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.grey[850],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: entrar,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'Entrar',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: criarContaPush,
+                  onPressed: criarConta,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.white,
@@ -140,6 +145,25 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   child: const Text(
                     'Criar Conta',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: pushLoginPage,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    'Voltar',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
