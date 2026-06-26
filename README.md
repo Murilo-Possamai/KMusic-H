@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="kmusich/lib/sources/logo_tp.png" alt="KMusic/H Logo" width="180"/>
+  <img src="kmusich/lib/assets/images/logo_tp.png" alt="KMusic/H Logo" width="180"/>
 
   <h1>KMusic/H</h1>
 
