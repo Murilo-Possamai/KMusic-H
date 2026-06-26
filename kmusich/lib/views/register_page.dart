@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kmusich/auth_service.dart';
 import 'package:kmusich/views/login_page.dart';
+import 'package:kmusich/widgets/static/background_blur.dart';
+import 'package:kmusich/widgets/static/logo.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -56,14 +58,17 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Center(
+      body: BackgroundBlur(
+        cor: Colors.white,
+        opacidade: 0.1,
+        child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Icon(Icons.music_note, size: 90, color: Colors.cyanAccent),
+              LogoCard(imageSize: 64),
               const SizedBox(height: 16),
               const Text(
                 "Seja Bem-Vindo!",
@@ -86,8 +91,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[850],
+                  contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -105,8 +111,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[850],
+                  contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -124,8 +131,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   hintStyle: const TextStyle(color: Colors.white38),
                   filled: true,
                   fillColor: Colors.grey[850],
+                  contentPadding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -136,11 +144,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: ElevatedButton(
                   onPressed: criarConta,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   child: const Text(
@@ -155,11 +163,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: ElevatedButton(
                   onPressed: pushLoginPage,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 24),
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(25),
                     ),
                   ),
                   child: const Text(
@@ -172,6 +180,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
       ),
+        ),
     );
   }
 }
