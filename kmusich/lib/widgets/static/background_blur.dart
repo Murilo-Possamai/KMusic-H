@@ -32,10 +32,8 @@ class BackgroundBlur extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-
         Positioned(top: -80, right: -80, child: _blob()),
         Positioned(bottom: -80, left: -80, child: _blob()),
-
         child,
       ],
     );

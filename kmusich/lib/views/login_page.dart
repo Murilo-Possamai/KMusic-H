@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:kmusich/auth_service.dart';
 import 'package:kmusich/views/main_page.dart';
 import 'package:kmusich/views/register_page.dart';
 import 'package:kmusich/widgets/static/background_blur.dart';
 import 'package:kmusich/widgets/static/logo.dart';
+import 'package:kmusich/widgets/static/notificationSnack.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,9 +17,10 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
+  bool _obscureText = true;
 
   Future<void> entrar() async {
-    if (emailController.text.isNotEmpty & senhaController.text.isNotEmpty) {
+    if (emailController.text.isNotEmpty && senhaController.text.isNotEmpty) {
       try {
         await authService.value.signIn(
           email: emailController.text,
@@ -32,10 +35,21 @@ class _LoginPageState extends State<LoginPage> {
             MaterialPageRoute(builder: (context) => const MainPage()),
           );
         }
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erro: $e')));
+      } on FirebaseAuthException catch (e) {
+        switch (e.code) {
+          case 'invalid-credential':
+            NotificationSnack.show(context, "Usuário ou senha incorretos.");
+            break;
+          case 'project-not-found' || 'internal-error':
+            NotificationSnack.show(context, "Server Error.");
+            break;
+          case 'email-already-exists':
+            NotificationSnack.show(context, "Este e-mail já está cadastrado.");
+            break;
+          case 'invalid-email':
+            NotificationSnack.show(context, "Insira um e-mail é valido.");
+            break;
+        }
       }
     } else {
       ScaffoldMessenger.of(
@@ -108,8 +122,8 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: senhaController,
+                  obscureText: _obscureText,
                   keyboardType: TextInputType.visiblePassword,
-                  obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: "Senha",
@@ -118,6 +132,10 @@ class _LoginPageState extends State<LoginPage> {
                     hintStyle: const TextStyle(color: Colors.white38),
                     filled: true,
                     fillColor: Colors.grey[850],
+                    suffixIcon: IconButton(
+                      onPressed: () => setState(() { _obscureText = !_obscureText; }),
+                      icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(
                       vertical: 24,
                       horizontal: 20,
@@ -164,7 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     child: const Text(
-                      'Criar Conta',
+                      'Sou Novo',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
