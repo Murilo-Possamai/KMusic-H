@@ -17,30 +17,31 @@ class _LoginPageState extends State<LoginPage> {
   final senhaController = TextEditingController();
 
   Future<void> entrar() async {
-    if (emailController.text.isNotEmpty & senhaController.text.isNotEmpty) {
+    if (emailController.text.isNotEmpty && senhaController.text.isNotEmpty) {
       try {
         await authService.value.signIn(
           email: emailController.text,
           password: senhaController.text,
         );
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Login bem-sucedido!')));
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MainPage()),
-          );
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Login bem-sucedido!')));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Insira os dados faltantes.')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Insira os dados faltantes.')),
+      );
     }
   }
 
