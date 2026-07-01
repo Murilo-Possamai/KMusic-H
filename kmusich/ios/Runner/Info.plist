@@ -49,6 +49,31 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Deep link para OAuth callback do Spotify -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kmusich</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Permissões de localização -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O KMusic usa sua localização para calcular a velocidade em km/h e tocar a playlist certa.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>O KMusic usa sua localização em segundo plano para monitorar a velocidade continuamente.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>O KMusic usa sua localização para calcular a velocidade e controlar suas playlists automaticamente.</string>
+
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
