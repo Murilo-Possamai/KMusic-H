@@ -17,6 +17,14 @@ class AppProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
   Map<String, dynamic>? _userProfile;
 
+  // Playlists
+  List<SpotifyPlaylist> _playlists = [];
+  bool _loadingPlaylists = false;
+  SpotifyPlaylist? _selectedPlaylist;
+
+  // Diagnóstico do último login Spotify (fica visível no card)
+  String? _lastAuthError;
+
   // Speed state
   double _currentSpeedKmh = 0;
   VelocitySource _velocitySource = VelocitySource.gps;
@@ -36,6 +44,10 @@ class AppProvider extends ChangeNotifier {
   // Getters
   bool get isLoggedIn => _isLoggedIn;
   Map<String, dynamic>? get userProfile => _userProfile;
+  List<SpotifyPlaylist> get playlists => List.unmodifiable(_playlists);
+  bool get loadingPlaylists => _loadingPlaylists;
+  SpotifyPlaylist? get selectedPlaylist => _selectedPlaylist;
+  String? get lastAuthError => _lastAuthError;
   double get currentSpeedKmh => _currentSpeedKmh;
   VelocitySource get velocitySource => _velocitySource;
   bool get isTracking => _isTracking;
@@ -60,13 +72,42 @@ class AppProvider extends ChangeNotifier {
   }
 
   Future<void> login() async {
-    final success = await authService.login();
-    if (success) {
-      _isLoggedIn = true;
-      await _loadUserProfile();
-      _startPlayerPolling();
+    _lastAuthError = null;
+    notifyListeners();
+    try {
+      final success = await authService.login();
+      if (success) {
+        _isLoggedIn = true;
+        notifyListeners(); // atualiza UI imediatamente (Conectado)
+        _startPlayerPolling();
+        await _loadUserProfile();
+      }
+    } catch (e) {
+      _lastAuthError = e.toString();
+      _isLoggedIn = authService.isLoggedIn; // reflete estado real do token
+      notifyListeners();
+      rethrow; // mantém o snackbar também
+    }
+  }
+
+
+  Future<void> loadPlaylists() async {
+    _loadingPlaylists = true;
+    notifyListeners();
+    try {
+      _playlists = await apiService.getUserPlaylists();
+    } finally {
+      _loadingPlaylists = false;
       notifyListeners();
     }
+  }
+
+  Future<void> selectAndPlayPlaylist(SpotifyPlaylist playlist) async {
+    _selectedPlaylist = playlist;
+    notifyListeners();
+    await apiService.playPlaylist(playlist.uri);
+    await Future.delayed(const Duration(milliseconds: 500));
+    await _pollPlayer();
   }
 
   Future<void> logout() async {
@@ -156,7 +197,6 @@ class AppProvider extends ChangeNotifier {
   void _checkSpeedForPlaylist() {
     if (!_isLoggedIn || _playlistConfigs.isEmpty) return;
 
-    // Find best matching playlist config for current speed
     PlaylistConfig? best;
     for (final config in _playlistConfigs) {
       final minOk = _currentSpeedKmh >= config.minSpeedKmh;
@@ -175,7 +215,6 @@ class AppProvider extends ChangeNotifier {
       apiService.playPlaylist(best.playlist.uri);
       notifyListeners();
     } else if (best == null && _lastPlayedPlaylistUri != null) {
-      // Speed dropped below all thresholds
       _activeConfig = null;
       _lastPlayedPlaylistUri = null;
       apiService.pause();

@@ -6,9 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SpotifyAuthService {
-  static const String _clientId = '579cf839dbf249d7a0fd4b1ce0fa2809';
-  static const String _clientSecret = '5a54cd3027e34e0eab97ab87ce386134';
-  static const String _redirectUri = 'spotifyspeed://callback';
+  static const String _clientId = '437d76e1030f47a69eaa1313eebcd692';
+  static const String _redirectUri = 'kmusich://callback';
   static const String _scopes =
       'user-read-private user-read-email playlist-read-private playlist-read-collaborative user-modify-playback-state user-read-playback-state streaming';
 
@@ -66,21 +65,20 @@ class SpotifyAuthService {
       'code_challenge': _codeChallenge,
     });
 
-    try {
-      final result = await FlutterWebAuth2.authenticate(
-        url: authUrl.toString(),
-        callbackUrlScheme: 'spotifyspeed',
-      );
+    final result = await FlutterWebAuth2.authenticate(
+      url: authUrl.toString(),
+      callbackUrlScheme: 'kmusich',
+    );
 
-      final uri = Uri.parse(result);
-      final code = uri.queryParameters['code'];
-      if (code == null) return false;
+    final uri = Uri.parse(result);
 
-      return await _exchangeCodeForToken(code);
-    } catch (e) {
-      print('Login error: $e');
-      return false;
-    }
+    final error = uri.queryParameters['error'];
+    if (error != null) throw Exception('Spotify recusou: $error');
+
+    final code = uri.queryParameters['code'];
+    if (code == null) throw Exception('Callback sem code: $result');
+
+    return await _exchangeCodeForToken(code);
   }
 
   Future<bool> _exchangeCodeForToken(String code) async {
@@ -101,23 +99,19 @@ class SpotifyAuthService {
       await _saveTokens(data);
       return true;
     }
-    print('Token exchange error: ${response.body}');
-    return false;
+    throw Exception('Token exchange falhou ${response.statusCode}: ${response.body}');
   }
 
   Future<void> _refreshAccessToken() async {
     if (_refreshToken == null) return;
 
-    final credentials = base64Encode(utf8.encode('$_clientId:$_clientSecret'));
     final response = await http.post(
       Uri.parse('https://accounts.spotify.com/api/token'),
-      headers: {
-        'Authorization': 'Basic $credentials',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: {
         'grant_type': 'refresh_token',
         'refresh_token': _refreshToken!,
+        'client_id': _clientId,
       },
     );
 

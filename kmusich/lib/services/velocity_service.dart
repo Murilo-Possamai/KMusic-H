@@ -63,7 +63,6 @@ class VelocityService {
   Future<void> _startGPS() async {
     final hasPermission = await requestPermissions();
     if (!hasPermission) {
-      // fallback to accelerometer
       _useGPS = false;
       _startAccelerometer();
       return;
@@ -85,10 +84,8 @@ class VelocityService {
     double speed = 0;
 
     if (position.speed >= 0) {
-      // GPS gives speed in m/s, convert to km/h
       speed = position.speed * 3.6;
     } else if (_lastPosition != null) {
-      // Calculate from distance
       final distance = Geolocator.distanceBetween(
         _lastPosition!.latitude,
         _lastPosition!.longitude,
@@ -124,11 +121,9 @@ class VelocityService {
   }
 
   void _handleAccelerometer(AccelerometerEvent event) {
-    // Calculate acceleration magnitude
     final magnitude =
         sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
 
-    // Remove gravity (~9.81 m/s²)
     final acceleration = (magnitude - 9.81).clamp(0.0, double.infinity);
 
     _accelBuffer.add(acceleration);
@@ -139,7 +134,6 @@ class VelocityService {
     final avgAccel =
         _accelBuffer.reduce((a, b) => a + b) / _accelBuffer.length;
 
-    // Integrate acceleration to velocity (dt = 0.1s)
     _currentSpeed = (_currentSpeed + avgAccel * 0.1) * 0.95;
     _currentSpeed = _currentSpeed.clamp(0, 200);
 
