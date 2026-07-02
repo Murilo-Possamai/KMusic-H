@@ -5,8 +5,6 @@ import '../models/saved_playlist.dart';
 import '../providers/app_provider.dart';
 import '../services/playlist_storage_service.dart';
 
-/// Widget da aba Playlist: lista as playlists salvas (com km alvo) e permite
-/// adicionar (botão '+' no canto), editar o km e remover. Persiste em SQLite.
 class PlaylistsWidget extends StatefulWidget {
   const PlaylistsWidget({super.key});
 
@@ -38,12 +36,12 @@ class _PlaylistsWidgetState extends State<PlaylistsWidget> {
     });
   }
 
-  // === AÇÃO DO BOTÃO '+' ===
+  //botao de maisze
 
   Future<void> _onAddPressed() async {
     final provider = context.read<AppProvider>();
 
-    // Não conectado no Spotify → avisa para conectar nas Configurações.
+    // Não conectado no Spotify avisa para conectar nas Configuracoes
     if (!provider.isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -54,7 +52,7 @@ class _PlaylistsWidgetState extends State<PlaylistsWidget> {
       return;
     }
 
-    // Conectado → abre o picker com as playlists da conta.
+    // Conecta abre o picker com as playlists do spotify.
     final chosen = await _showPlaylistPicker(provider);
     if (chosen == null || !mounted) return;
 
@@ -170,7 +168,6 @@ class _PlaylistsWidgetState extends State<PlaylistsWidget> {
     );
   }
 
-  /// Dialog pra digitar/editar o km alvo. Retorna null se cancelar.
   Future<int?> _askKm({int? initial}) {
     final controller =
         TextEditingController(text: initial != null ? '$initial' : '');
@@ -291,7 +288,6 @@ class _PlaylistsWidgetState extends State<PlaylistsWidget> {
       ),
       child: Column(
         children: [
-          // Header com o botão '+' no canto
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
             child: Row(

@@ -243,7 +243,7 @@ class AppProvider extends ChangeNotifier {
         .toList();
   }
 
-  // === SPEED → PLAYLIST LOGIC ===
+  // === SPEED PLAYLIST LOGIC ===
 
   void _checkSpeedForPlaylist() {
     if (!_isLoggedIn || _savedPlaylists.isEmpty) return;
