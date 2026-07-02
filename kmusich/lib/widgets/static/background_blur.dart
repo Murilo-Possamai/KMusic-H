@@ -14,6 +14,10 @@ class BackgroundBlur extends StatelessWidget {
   });
 
   Widget _blob() {
+    final int alpha = (opacidade * 255).round().clamp(0, 255);
+    final int red = (cor.r * 255.0).round().clamp(0, 255);
+    final int green = (cor.g * 255.0).round().clamp(0, 255);
+    final int blue = (cor.b * 255.0).round().clamp(0, 255);
     return ImageFiltered(
       imageFilter: ImageFilter.blur(sigmaX: 120, sigmaY: 120),
       child: Container(
@@ -21,7 +25,7 @@ class BackgroundBlur extends StatelessWidget {
         height: 500,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: cor.withOpacity(opacidade),
+          color: Color.fromARGB(alpha, red, green, blue),
         ),
       ),
     );
@@ -32,7 +36,6 @@ class BackgroundBlur extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-
         Positioned(top: -80, right: -80, child: _blob()),
         Positioned(bottom: -80, left: -80, child: _blob()),
 
