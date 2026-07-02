@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/playlist_model.dart';
+import '../models/saved_playlist.dart';
 import '../models/track_model.dart';
+import '../services/playlist_storage_service.dart';
 import '../services/spotify_auth_service.dart';
 import '../services/spotify_api_service.dart';
 import '../services/velocity_service.dart';
@@ -12,6 +14,7 @@ class AppProvider extends ChangeNotifier {
   final SpotifyAuthService authService = SpotifyAuthService();
   late final SpotifyApiService apiService;
   final VelocityService velocityService = VelocityService();
+  final PlaylistStorageService _storageService = PlaylistStorageService();
 
   // Auth state
   bool _isLoggedIn = false;
@@ -31,10 +34,17 @@ class AppProvider extends ChangeNotifier {
   bool _isTracking = false;
   bool _useGPS = true;
 
-  // Playlist configs
+  // Playlist configs (legado)
   List<PlaylistConfig> _playlistConfigs = [];
   PlaylistConfig? _activeConfig;
   String? _lastPlayedPlaylistUri;
+
+  // Playlists salvas no SQLite com km alvo
+  List<SavedPlaylist> _savedPlaylists = [];
+  SavedPlaylist? _pendingPlaylist; // aguardando fim da música atual
+
+  // Configuração de troca
+  bool _instantSwitch = true;
 
   // Player state
   CurrentTrack? _currentTrack;
@@ -48,6 +58,30 @@ class AppProvider extends ChangeNotifier {
   bool get loadingPlaylists => _loadingPlaylists;
   SpotifyPlaylist? get selectedPlaylist => _selectedPlaylist;
   String? get lastAuthError => _lastAuthError;
+
+  /// Nome da playlist sendo tocada — busca nas salvas (SQLite) primeiro, depois nas do Spotify.
+  String? get currentPlaylistName {
+    final uri = _currentTrack?.contextUri;
+    if (uri == null) return null;
+    try {
+      return _savedPlaylists.firstWhere((p) => p.uri == uri).name;
+    } catch (_) {}
+    try {
+      return _playlists.firstWhere((p) => p.uri == uri).name;
+    } catch (_) {}
+    return null;
+  }
+
+  /// Km alvo da playlist sendo tocada (só disponível se estiver nas salvas).
+  int? get currentPlaylistTargetKmh {
+    final uri = _currentTrack?.contextUri;
+    if (uri == null) return null;
+    try {
+      return _savedPlaylists.firstWhere((p) => p.uri == uri).targetKmh;
+    } catch (_) {
+      return null;
+    }
+  }
   double get currentSpeedKmh => _currentSpeedKmh;
   VelocitySource get velocitySource => _velocitySource;
   bool get isTracking => _isTracking;
@@ -55,6 +89,8 @@ class AppProvider extends ChangeNotifier {
   List<PlaylistConfig> get playlistConfigs => List.unmodifiable(_playlistConfigs);
   PlaylistConfig? get activeConfig => _activeConfig;
   CurrentTrack? get currentTrack => _currentTrack;
+  bool get instantSwitch => _instantSwitch;
+  SavedPlaylist? get pendingPlaylist => _pendingPlaylist;
 
   AppProvider() {
     apiService = SpotifyApiService(authService);
@@ -64,10 +100,25 @@ class AppProvider extends ChangeNotifier {
     await authService.init();
     _isLoggedIn = authService.isLoggedIn;
     await _loadPlaylistConfigs();
+    await reloadSavedPlaylists();
+    final prefs = await SharedPreferences.getInstance();
+    _instantSwitch = prefs.getBool('instant_switch') ?? true;
     if (_isLoggedIn) {
       await _loadUserProfile();
       _startPlayerPolling();
     }
+    notifyListeners();
+  }
+
+  Future<void> reloadSavedPlaylists() async {
+    _savedPlaylists = await _storageService.getAll();
+    notifyListeners();
+  }
+
+  Future<void> setInstantSwitch(bool value) async {
+    _instantSwitch = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('instant_switch', value);
     notifyListeners();
   }
 
@@ -192,32 +243,40 @@ class AppProvider extends ChangeNotifier {
         .toList();
   }
 
-  // === SPEED → PLAYLIST LOGIC ===
+  // === SPEED PLAYLIST LOGIC ===
 
   void _checkSpeedForPlaylist() {
-    if (!_isLoggedIn || _playlistConfigs.isEmpty) return;
+    if (!_isLoggedIn || _savedPlaylists.isEmpty) return;
 
-    PlaylistConfig? best;
-    for (final config in _playlistConfigs) {
-      final minOk = _currentSpeedKmh >= config.minSpeedKmh;
-      final maxOk = config.maxSpeedKmh == null ||
-          _currentSpeedKmh <= config.maxSpeedKmh!;
-      if (minOk && maxOk) {
-        if (best == null || config.minSpeedKmh > best.minSpeedKmh) {
-          best = config;
-        }
+    // Maior targetKmh que ainda é ≤ velocidade atual (lógica de escada)
+    final eligible = _savedPlaylists
+        .where((p) => _currentSpeedKmh >= p.targetKmh)
+        .toList()
+      ..sort((a, b) => b.targetKmh.compareTo(a.targetKmh));
+
+    final best = eligible.isNotEmpty ? eligible.first : null;
+
+    if (best == null) {
+      if (_lastPlayedPlaylistUri != null) {
+        _lastPlayedPlaylistUri = null;
+        _pendingPlaylist = null;
+        apiService.pause();
+        notifyListeners();
       }
+      return;
     }
 
-    if (best != null && best.playlist.uri != _lastPlayedPlaylistUri) {
-      _activeConfig = best;
-      _lastPlayedPlaylistUri = best.playlist.uri;
-      apiService.playPlaylist(best.playlist.uri);
+    if (best.uri == _lastPlayedPlaylistUri) return;
+    // Já está pendente para essa mesma playlist
+    if (_pendingPlaylist?.uri == best.uri) return;
+
+    if (_instantSwitch) {
+      _lastPlayedPlaylistUri = best.uri;
+      _pendingPlaylist = null;
+      apiService.playPlaylist(best.uri);
       notifyListeners();
-    } else if (best == null && _lastPlayedPlaylistUri != null) {
-      _activeConfig = null;
-      _lastPlayedPlaylistUri = null;
-      apiService.pause();
+    } else {
+      _pendingPlaylist = best;
       notifyListeners();
     }
   }
@@ -252,6 +311,15 @@ class AppProvider extends ChangeNotifier {
     await _pollPlayer();
   }
 
+  bool _shuffleOn = false;
+  bool get shuffleOn => _shuffleOn;
+
+  Future<void> toggleShuffle() async {
+    _shuffleOn = !_shuffleOn;
+    await apiService.setShuffle(_shuffleOn);
+    notifyListeners();
+  }
+
   void _startPlayerPolling() {
     _playerPollTimer?.cancel();
     _playerPollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -262,6 +330,19 @@ class AppProvider extends ChangeNotifier {
   Future<void> _pollPlayer() async {
     final track = await apiService.getCurrentlyPlaying();
     _currentTrack = track;
+
+    // Se há playlist pendente (modo "aguardar fim"), troca quando a música terminar
+    if (_pendingPlaylist != null && track != null) {
+      final nearEnd = track.durationMs > 0 &&
+          track.progressMs >= track.durationMs - 4000;
+      if (nearEnd || !track.isPlaying) {
+        final pending = _pendingPlaylist!;
+        _pendingPlaylist = null;
+        _lastPlayedPlaylistUri = pending.uri;
+        await apiService.playPlaylist(pending.uri);
+      }
+    }
+
     notifyListeners();
   }
 

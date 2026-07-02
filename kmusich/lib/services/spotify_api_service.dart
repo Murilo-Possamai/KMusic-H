@@ -49,7 +49,7 @@ class SpotifyApiService {
         }
         nextUrl = data['next'];
       } else {
-        break;
+        throw Exception('getUserPlaylists ${response.statusCode}: ${response.body}');
       }
     }
     return playlists;
